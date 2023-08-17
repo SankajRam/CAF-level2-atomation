@@ -1,0 +1,27 @@
+portfolios:
+  code: TCSD4100
+  project: udp
+  domain: git
+  sub_domain: titestwen
+  contacts:
+    - yeowweng.liow
+    - raja.kethamreddy
+  zones:
+    - env: dev
+      region: sea
+      instance: '01'
+      sub_id: '3240fe46-a01d-4d82-94cf-258d7c79baa6'
+      vnets:
+        - type: vnet
+          name: udp # same as project name
+          index: 01
+          cidr: [10.168.249.0/26, 10.168.250.0/26]
+          hubconnection: False
+          subnets:
+            - type: NONE
+              name: datafactory
+              cidr: [10.168.249.0/26]
+              nsgname: data_factory
+              rules:
+                - name: test
+

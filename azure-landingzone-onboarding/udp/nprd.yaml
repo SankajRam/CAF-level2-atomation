@@ -1,0 +1,78 @@
+portfolios:
+  name: corpit
+  code: TCSD4100
+  project: udp
+  domain: git
+  sub_domain: test
+  contacts:
+    - yeowweng.liow
+    - raja.kethamreddy
+  zones:
+    - name: singtel-git-dpm-udp
+      env: nprd
+      region: sea
+      instance: '01'
+      sub_id: '5c989fc9-bfc4-48ab-ba3c-49686707972a'
+      vnets:
+        - type: vnet
+          name: dpm-udp-data # same as project name
+          index: 01
+          cidr: [10.0.0.0/21]
+          hubconnection: False
+          subnets:
+            - type: NONE
+              name: databricks-pe
+              cidr: 10.0.0.0/26
+              nsgname: databricks_pe
+              rules:
+                - name: test
+            - type: NONE
+              name: dataexplorer
+              cidr: 10.0.0.64/26
+              nsgname: data_explorer
+              rules:
+                - name: test2
+            - type: NONE
+              name: databricks-container
+              cidr: 10.0.4.0/23
+              nsgkey: adsl_nsg
+              nsgname: databricks_container
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-host
+              cidr: 10.0.6.0/23
+              nsgname: databricks-_host
+              rules:
+                - name: test2
+        - type: vnet
+          name: dpm-udp-data-mgmt # same as project name
+          index: 01
+          cidr: [10.169.12.0/22]
+          hubconnection: true
+          subnets:
+            - type: NONE
+              name: databricks-pe
+              cidr: 10.169.12.0/26
+              nsgname: databricks_pe
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-host
+              cidr: 10.169.14.0/24
+              nsgname: databricks_host
+              rules:
+                - name: test2
+            - type: NONE
+              name: adf
+              cidr: 10.169.12.64/27
+              nsgkey: adf
+              nsgname: adf
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-container
+              cidr: 10.169.13.0/24
+              nsgname: databricks_container
+              rules:
+                - name: test2

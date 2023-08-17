@@ -1,0 +1,167 @@
+portfolios:
+  name: UDP
+  code: TCSD4100
+  project: udp
+  domain: git
+  sub_domain: dpm
+  contacts:
+    - yeowweng.liow
+    - raja.kethamreddy
+  zones:
+    - name: singtel-git-dpm-udp
+      env: prd
+      region: sea
+      instance: '01'
+      sub_id: '9c695a00-74b1-49c5-aeea-112a165a31c3'
+      vnets:
+        - type: vnet
+          name: dpm-udp-data # same as project name
+          index: 01
+          cidr: [172.20.0.0/19]
+          hubconnection: False
+          subnets:
+            - type: NONE
+              name: databricks-pe
+              cidr: [172.20.0.0/25]
+              nsgname: dpm_databricks_pe
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-container
+              cidr: [172.20.16.0/21]
+              nsgname: dpm_databricks_container
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-host
+              cidr: [172.20.24.0/21]
+              nsgname: dpm_databricks_host
+              rules:
+                - name: test2
+        - type: vnet
+          name: ge-udp-data # same as project name
+          index: 01
+          cidr: [172.20.32.0/19]
+          hubconnection: False
+          subnets:
+            - type: NONE
+              name: databricks-pe
+              cidr: [172.20.32.0/25]
+              nsgname: ge_databricks_pe
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-container
+              cidr: [172.20.48.0/21]
+              nsgname: ge_databricks_container
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-host
+              cidr: [172.20.56.0/21]
+              nsgname: ge_databricks_host
+              rules:
+                - name: test2           
+        - type: vnet
+          name: gc-udp-data # same as project name
+          index: 01
+          cidr: [172.20.64.0/19]
+          hubconnection: False
+          subnets:
+            - type: NONE
+              name: databricks-pe
+              cidr: [172.20.64.0/25]
+              nsgname: gc_databricks_pe
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-container
+              cidr: [172.20.80.0/21]
+              nsgname: gc_databricks_container
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-host
+              cidr: [172.20.88.0/21]
+              nsgname: gc_databricks_host
+              rules:
+                - name: test2      
+        - type: vnet
+          name: sw-udp-data # same as project name
+          index: 01
+          cidr: [172.20.96.0/19]
+          hubconnection: False
+          subnets:
+            - type: NONE
+              name: databricks-pe
+              cidr: [172.20.96.0/25]
+              nsgname: sw_databricks_pe
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-container
+              cidr: [172.20.112.0/21]
+              nsgname: sw_databricks_container
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-host
+              cidr: [172.20.120.0/21]
+              nsgname: sw_databricks_host
+              rules:
+                - name: test2                      
+        - type: vnet
+          name: dpm-udp-data-mgmt # same as project name
+          index: 01
+          cidr: [10.173.12.0/23, 10.173.14.0/24]
+          hubconnection: true
+          subnets:
+            - type: NONE
+              name: databricks-pe
+              cidr: [10.173.12.0/26]
+              nsgname: mgmt_databricks_pe
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-host
+              cidr: [10.173.14.0/24]
+              nsgname: mgmt_databricks_host
+              rules:
+                - name: test2
+            - type: NONE
+              name: adf
+              cidr: [10.173.12.64/27]
+              nsgname: mgmt_adf
+              rules:
+                - name: test
+            - type: NONE
+              name: databricks-container
+              cidr: [10.173.13.0/24]
+              nsgname: mgmt_databricks_container
+              rules:
+                - name: test2
+            - type: NONE
+              name: airflow
+              cidr: [10.173.12.192/27]
+              nsgname: mgmt_airflow
+              rules:
+                - name: test
+            - type: NONE
+              name: db
+              cidr: [10.173.12.224/27]
+              nsgname: mgmt_db
+              rules:
+                - name: test2            
+      vnet_peering:
+        - type: vnetpeering
+          from_vnet_key: dpm-udp-data # same as project name
+          to_vnet_key: dpm-udp-data-mgmt
+        - type: vnetpeering
+          from_vnet_key: ge-udp-data # same as project name
+          to_vnet_key: dpm-udp-data-mgmt 
+        - type: vnetpeering
+          from_vnet_key: gc-udp-data # same as project name
+          to_vnet_key: dpm-udp-data-mgmt  
+        - type: vnetpeering
+          from_vnet_key: sw-udp-data # same as project name
+          to_vnet_key: dpm-udp-data-mgmt            

@@ -1,0 +1,194 @@
+---
+version: 2
+plan:
+  project-key: AZPIPE
+  key: L2PROJECTNAMEENVIRONMENT
+  name: PLANNAME
+variables:
+  tfstate: PLANNAME.tfstate
+  tfstate_sub_id: "44e4a5d7-1658-4f1f-85b2-f7fbb0f3c2ba"
+  lz_sub_id: "SUBSCRIPTION_ID"
+  caf_version: "int-5.7.0"
+  rover_version: "1.4.6-2305.0405"
+  landing_zone_repo: https://github.com/Azure/caf-terraform-landingzones.git
+
+stages:
+  - Plan:
+      manual: false
+      final: false
+      jobs:
+        - Plan Job
+  - Apply:
+      manual: true
+      final: false
+      jobs:
+        - Apply Job
+
+Plan Job:
+  key: JOB1
+  docker:
+    image: aztfmod/rover:${bamboo.rover_version}
+    volumes:
+      ${bamboo.tmp.directory}: ${bamboo.tmp.directory}
+      ${bamboo.working.directory}: ${bamboo.working.directory}
+    docker-run-arguments: [ ]
+  tasks:
+    - clean
+    - checkout:
+        path: caf
+        force-clean-build: 'true'
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |-
+            #!/bin/bash
+            export TF_CLI_ARGS="-no-color"
+            export ARM_USE_MSI=true
+            export ARM_USE_MSAL=false
+            export ROVER_RUNNER=true
+            F="$bamboo_shortPlanName.tfplan"
+            PLANFILE=$bamboo_tmp_directory/$F && rm -f $PLANFILE
+            echo "Setup workspace..."
+            rm -rf /caf/.devcontainer && cp -r caf/.devcontainer /tf/caf
+            rm -rf /tf/caf/singtel && rm -rf /tf/caf/platform && cp -r caf/platform /tf/caf
+            echo "Pulling version $bamboo_caf_version of CAF Terraform into workspace..."
+            rm -rf /tf/caf/landingzones && git clone -c advice.detachedHead=false -q -b $bamboo_caf_version \
+                $bamboo_landing_zone_repo /tf/caf/landingzones
+            /tf/rover/rover.sh purge
+            echo "Login..."
+            az login --identity -u "$MSI_ID" > /dev/null
+            retVal=$?
+            if [ $retVal -eq 1 ]; then
+                exit $retVal
+            fi
+            echo "Set subscription to: $bamboo_lz_sub_id"
+            az account set --subscription $bamboo_lz_sub_id
+            echo "Executing runner (ah la run.sh)..."
+            /tf/rover/rover.sh -lz /tf/caf/landingzones/caf_solution \
+                -var-folder /tf/caf/platform/components \
+                -tfstate_subscription_id "$bamboo_tfstate_sub_id" \
+                -target_subscription "$bamboo_lz_sub_id" \
+                -tfstate $bamboo_tfstate \
+                -env singtel-dev -level $TF_VAR_pipeline_level \
+                -p $PLANFILE -parallelism 30 \
+                -a $1
+            let code=$?
+            if [ $code = 2 ] || [ $code = 0 ]; then
+              echo "Result $code is OK"
+              az storage blob upload --account-name uraxst$TF_VAR_pipeline_level \
+                  --container-name tfplan \
+                  --name $F --file $PLANFILE \
+                  --auth-mode login --no-progress --overwrite
+              exit 0
+            else
+              echo "Result: $code"
+              exit $code
+            fi
+        argument: plan
+        environment: MSI_ID="${bamboo.layer2.msi.secret}" TF_VAR_pipeline_level=level2
+  requirements:
+    - system.platform.azure: lin-BAMBOOAGENTENV
+
+Apply Job:
+  key: JOB2
+  docker:
+    image: aztfmod/rover:${bamboo.rover_version}
+    volumes:
+      ${bamboo.tmp.directory}: ${bamboo.tmp.directory}
+      ${bamboo.working.directory}: ${bamboo.working.directory}
+    docker-run-arguments: [ ]
+  tasks:
+    - clean
+    - checkout:
+        path: caf
+        force-clean-build: 'true'
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |-
+            #!/bin/bash
+            export TF_CLI_ARGS="-no-color"
+            export ARM_USE_MSI=true
+            export ARM_USE_MSAL=false
+            export ROVER_RUNNER=true
+            F="$bamboo_shortPlanName.tfplan"
+            PLANFILE=$bamboo_tmp_directory/$F && rm -f $PLANFILE
+            echo "Setup workspace..."
+            rm -rf /caf/.devcontainer && cp -r caf/.devcontainer /tf/caf
+            rm -rf /tf/caf/singtel && rm -rf /tf/caf/platform && cp -r caf/platform /tf/caf
+            echo "Pulling version $bamboo_caf_version of CAF Terraform into workspace..."
+            rm -rf /tf/caf/landingzones && git clone -c advice.detachedHead=false -q -b $bamboo_caf_version \
+                  $bamboo_landing_zone_repo /tf/caf/landingzones
+            /tf/rover/rover.sh purge
+            echo "Login..."
+            az login --identity -u "$MSI_ID" > /dev/null
+            retVal=$?
+            if [ $retVal -eq 1 ]; then
+                exit $retVal
+            fi
+            echo "Set subscription to: $bamboo_lz_sub_id"
+            az account set --subscription $bamboo_lz_sub_id
+            echo "Executing runner (ah la run.sh)..."
+            /tf/rover/rover.sh -lz /tf/caf/landingzones/caf_solution \
+                -var-folder /tf/caf/platform/components \
+                -tfstate_subscription_id "$bamboo_tfstate_sub_id" \
+                -target_subscription "$bamboo_lz_sub_id" \
+                -tfstate $bamboo_tfstate \
+                -env singtel-dev -level $TF_VAR_pipeline_level \
+                -parallelism 30 \
+                -a $1
+              let code=$?
+              if [ $code = 2 ] || [ $code = 0 ]; then
+                echo "Result $code is OK"
+                az storage blob upload --account-name uraxst$TF_VAR_pipeline_level \
+                    --container-name tfplan \
+                    --name $F --file $PLANFILE \
+                    --auth-mode login --no-progress --overwrite
+                exit 0
+              else
+                echo "Result: $code"
+                exit $code
+              fi
+        argument: apply
+        environment: MSI_ID="${bamboo.layer2.msi.secret}" TF_VAR_pipeline_level=level2
+  requirements:
+    - system.platform.azure: lin-BAMBOOAGENTENV
+
+branches:
+  create: manually
+  delete: never
+  link-to-jira: true
+notifications:
+  - events:
+      - plan-completed
+    recipients:
+      - users: [ "yeowweng.liow@singtel.com","raja.kethamreddy@singtel.com", "wen.tian@singtel.com" ]
+labels:
+  - caf
+  - level1
+  - singtel
+  - git
+  - core
+  - ENVIRONMENT_LABEL
+other:
+  concurrent-build-plugin: system-default
+
+---
+version: 2
+plan:
+  key: AZPIPE-L2PROJECTNAMEENVIRONMENT
+plan-permissions:
+  - users: [ "yeowweng.liow@singtel.com","raja.kethamreddy@singtel.com", "wen.tian@singtel.com","mahesh.sujendra@singtel.com" ]
+    permissions:
+      - view
+      - edit
+      - build
+      - clone
+      - admin
+  - groups:
+      - bamboo-project-leads
+    permissions:
+      - view
+      - edit
+      - build
+      - clone

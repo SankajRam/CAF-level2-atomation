@@ -1,0 +1,111 @@
+---
+version: 2
+plan:
+  project-key: TI
+  key: TIOBLANDINGZONE
+  name: Azure-Level2-Landingzone-Automation
+
+variables:
+  username: "user"
+  login_secret: BAMSCRT@0@0@pzJy99072ndFe+XPJQoRBg==
+  domain: "git"
+  sub_domain: "test"
+  project: "test"
+  env: "dev"
+  region: "sea"
+
+stages:
+  - Deploy Level2 Job:
+      manual: false
+      final: false
+      jobs:
+        - Deploy Level2 Job
+
+Deploy Level2 Job:
+  key: JOB1
+  tasks:
+    - clean
+    - checkout:
+        force-clean-build: 'true'
+    - script:
+        interpreter: SHELL
+        scripts:
+          - |-
+            #!/bin/bash
+
+            BB_REPO_NAME="singtel-$bamboo_domain-$bamboo_sub_domain-$bamboo_project-level2-$bamboo_env-$bamboo_region-01"
+            echo "BB_REPO_NAME=========== $BB_REPO_NAME"
+            HTTP_RESPONSE_CODE=$(curl -o /dev/null -sw "%{http_code}" -u "$bamboo_username:$bamboo_login_secret"  -X POST -H "Content-Type: application/json" -d '{"name": "'"$BB_REPO_NAME"'", "scmId": "git", "forkable": true}' "https://bitbucket.dev.aws.singtel.com/rest/api/1.0/projects/AZPIPE/repos")
+            echo "HTTP_RESPONSE_CODE =============== $HTTP_RESPONSE_CODE"
+            if [ $HTTP_RESPONSE_CODE == "201" ]; then
+                echo "$BB_REPO_NAME Repo has been crated "
+            elif [ $HTTP_RESPONSE_CODE == "409" ]; then
+                echo "$BB_REPO_NAME Repo already exists"
+                cd $BB_REPO_NAME
+                rm -rf $BB_REPO_NAME/*
+            else
+                echo "auth issues, please pass the correct username and password"
+                exit 1
+            fi
+            ENCODE_PASSWORD=$(printf %s $bamboo_login_secret|jq -sRr @uri)
+            ENCODE_USERNAME=$(printf %s $bamboo_username|jq -sRr @uri)
+            ls -lart
+            git clone "https://$ENCODE_USERNAME:$ENCODE_PASSWORD@bitbucket.dev.aws.singtel.com/scm/azpipe/$BB_REPO_NAME.git" $BB_REPO_NAME
+            ls -lart
+            python3 level2.py -p $bamboo_project -e $bamboo_env -r $BB_REPO_NAME
+            ls -lart $BB_REPO_NAME
+            ls -lart $BB_REPO_NAME/platform/components
+            cd $BB_REPO_NAME
+            git config --global user.name "$bamboo_username"
+            git status
+            git add .
+            git commit -m "level2 automation initial commit"
+            cd platform/components
+            terraform fmt --recursive
+            cd ../..
+            git push https://$ENCODE_USERNAME:$ENCODE_PASSWORD@bitbucket.dev.aws.singtel.com/scm/azpipe/$BB_REPO_NAME.git
+
+        description: Level2 automation
+        environment: BIT_ID="${bamboo.bitbucket.secret}" MSI_ID="${bamboo.layer3.msi.secret}" TF_VAR_pipeline_level=level3
+
+  requirements:
+    - system.platform.azure: lin-dev
+
+
+branches:
+  create: manually
+  delete: never
+  link-to-jira: true
+notifications:
+  - events:
+      - plan-completed
+    recipients:
+      - users:
+          - yeowweng.liow@singtel.com
+          - raja.kethamreddy@singtel.com
+          - sankaj.ram@singtel.com
+labels:
+  - onboard
+  - landingzone
+  - level2
+other:
+  concurrent-build-plugin: system-default
+
+---
+version: 2
+plan:
+  key: TI-TITESTLANDING
+plan-permissions:
+  - users:
+      - raja.kethamreddy@singtel.com
+      - wen.tian@singtel.com
+      - yeowweng.liow@singtel.com
+      - sankaj.ram@singtel.com
+      - madhulika.sarangam@singtel.com
+    permissions:
+      - view
+      - edit
+      - build
+      - clone
+      - admin
+

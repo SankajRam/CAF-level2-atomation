@@ -1,0 +1,48 @@
+portfolios:
+  name: csmgmt
+  code: TCSD4100
+  project: csmgmt
+  domain: git
+  sub_domain: cs
+  contacts:
+    - yeowweng.liow
+    - raja.kethamreddy
+    - mahesh.sujendra
+    - madhulika.sarangam
+  zones:
+    - name: singtel-git-csmgmt-cs
+      env: dev
+      region: sea
+      instance: '01'
+      sub_id: '98fd0a2b-3845-46ae-8800-528bcacb0484'
+      vnets:
+        - type: vnet
+          name: csmgmt # same as project name
+          index: 01
+          cidr: [10.168.19.0/25]
+          hubconnection: true
+          subnets:
+            - type: NONE
+              name: eiovm
+              cidr: [10.168.19.64/28]
+              nsgname: eiovm
+              rules:
+                - name: eiovm
+            - type: NONE
+              name: eiodb
+              cidr: [10.168.19.80/28]
+              nsgname: eiodb
+              rules:
+                - name: eiodb
+            - type: NONE
+              name: appvm
+              cidr: [10.168.19.96/28]
+              nsgname: appvm
+              rules:
+                - name: appvm
+            - type: NONE
+              name: appdb
+              cidr: [10.168.19.112/28]
+              nsgname: appdb
+              rules:
+                - name: appdb
